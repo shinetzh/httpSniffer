@@ -25,6 +25,7 @@ using namespace std;
 enum Proto {TCP=0,UDP};
 struct Packet{
 	Proto			Protocol;
+	long long       time;
 	unsigned char	SrcMac[6];
 	unsigned char	DestMac[6];
 	in_addr			SrcIp;
@@ -56,7 +57,7 @@ extern pcap_t *pcapHandle;
 extern ThreadArg arg;
 //数据包数量
 extern unsigned int PacketCount;
-
+extern vector<pcap_if_t*> netDevs;
 //函数声明部分
 //////////////////////////////////////////////////////////////////////////
 //以太网分析回调函数
@@ -71,10 +72,10 @@ BOOL InsertPacket(Packet p);
 //线程回调函数
 BOOL Func(LPVOID p);
 //开始嗅探
-BOOL StartSniffer();
+BOOL StartSniffer(pcap_if_t *pcapDev);
 //停止嗅探
 BOOL StopSniffer(pcap_t *pcapHandle);
 //Winpcap初始化
-int InitWpcap(void);
+int InitWpcap(pcap_if_t *pcapDev);
 
 long long int GetMilliTime();

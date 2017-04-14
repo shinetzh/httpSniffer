@@ -1,10 +1,4 @@
-
-#include "sniffer.h"
-#pragma comment(lib,"ws2_32.lib")
-#pragma comment(lib,"wpcap.lib")
-#pragma comment(lib,"Comctl32.lib")
-HWND hDlg;
-
+#include "SnifferDlg.h"
 
 LRESULT CALLBACK DlgProc(
 	_In_ HWND   hwnd,
@@ -44,6 +38,14 @@ LRESULT CALLBACK DlgProc(
 	{
 
 		hDlg = hwnd;
+
+
+
+		//初始化wpcap
+		InitWpcapNetCards();
+
+
+
 		HWND hList = GetDlgItem(hwnd, IDC_LIST);
 		memset(&LvCol, 0, sizeof(LvCol));
 		LvCol.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
@@ -51,30 +53,33 @@ LRESULT CALLBACK DlgProc(
 		LvCol.cx = 0x25;
 		LvCol.pszText = "编号";
 		SendMessage(GetDlgItem(hwnd,IDC_LIST),LVM_INSERTCOLUMN,0,(LPARAM)&LvCol);
+		LvCol.cx = 0x80;
+		LvCol.pszText = "时间";
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 1, (LPARAM)&LvCol);
 		LvCol.pszText = "协议";
 		LvCol.cx = 0x25;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 1, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 2, (LPARAM)&LvCol);
 		LvCol.pszText = "源MAC";
 		LvCol.cx = 0x80;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 2, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 3, (LPARAM)&LvCol);
 		LvCol.pszText = "源IP";
 		LvCol.cx = 0x60;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 3, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 4, (LPARAM)&LvCol);
 		LvCol.pszText = "源PORT";
 		LvCol.cx = 0x40;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 4, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 5, (LPARAM)&LvCol);
 		LvCol.pszText = "目的MAC";
 		LvCol.cx = 0x80;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 5, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 6, (LPARAM)&LvCol);
 		LvCol.pszText = "目的IP";
 		LvCol.cx = 0x60;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 6, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 7, (LPARAM)&LvCol);
 		LvCol.pszText = "目的PORT";
 		LvCol.cx = 0x40;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 7, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 8, (LPARAM)&LvCol);
 		LvCol.pszText = "数据长度";
 		LvCol.cx = 0x40;
-		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 8, (LPARAM)&LvCol);
+		SendMessage(GetDlgItem(hwnd, IDC_LIST), LVM_INSERTCOLUMN, 9, (LPARAM)&LvCol);
 		ListView_SetExtendedListViewStyleEx(
 			GetDlgItem(hwnd, IDC_LIST),
 			0,
@@ -149,7 +154,14 @@ LRESULT CALLBACK DlgProc(
 				//删除所有显示数据
 				ListView_DeleteAllItems(GetDlgItem(hwnd,IDC_LIST));
 				//开始嗅探
-				StartSniffer();
+				pcap_if_t *pcapDev;
+				LRESULT result = SendMessage(GetDlgItem(hDlg, IDC_COMBO1), CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+				while (result == CB_ERR){
+					MessageBox(NULL, "请选择网卡", "警告", MB_OK);
+					result = SendMessage(GetDlgItem(hDlg, IDC_COMBO1), CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+				}
+				pcapDev = netDevs[result];
+				StartSniffer(pcapDev);
 				SetWindowText(GetDlgItem(hwnd, IDC_EDIT1), "");
 				SetWindowText(GetDlgItem(hwnd, IDC_EDIT2), "");
 				SetWindowText(GetDlgItem(hwnd, IDC_BUTTON1), "停止嗅探");
@@ -167,6 +179,7 @@ LRESULT CALLBACK DlgProc(
 		}
 		break;
 	case WM_CLOSE:
+		//停止嗅探
 		EndDialog(hwnd, NULL);
 		DestroyWindow(hwnd);
 		break;
@@ -195,6 +208,12 @@ BOOL InsertPacket(Packet p)
 
 	LvItem.iSubItem = 1;
 	memset(Buf, 0, sizeof(Buf));
+	sprintf(Buf, "%I64d", p.SrcMac[0], p.time);
+	LvItem.pszText = _strupr(Buf);
+	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
+
+	LvItem.iSubItem = 2;
+	memset(Buf, 0, sizeof(Buf));
 	if (p.Protocol == TCP)
 	{
 		memcpy(Buf, "TCP", sizeof("TCP"));
@@ -205,47 +224,80 @@ BOOL InsertPacket(Packet p)
 	}
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 2;
+	LvItem.iSubItem = 3;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%02x:%02x:%02x:%02x:%02x:%02x", p.SrcMac[0], p.SrcMac[1], p.SrcMac[2], p.SrcMac[3], p.SrcMac[4], p.SrcMac[5]);
-	LvItem.pszText = strupr(Buf);
+	LvItem.pszText = _strupr(Buf);
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 3;
+	LvItem.iSubItem = 4;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%s", inet_ntoa(p.SrcIp));
 	LvItem.pszText = Buf;
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 4;
+	LvItem.iSubItem = 5;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%d", ntohs(p.SrcPort));
 	LvItem.pszText = Buf;
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 5;
+	LvItem.iSubItem = 6;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%02x:%02x:%02x:%02x:%02x:%02x", p.DestMac[0], p.DestMac[1], p.DestMac[2], p.SrcMac[3], p.DestMac[4], p.DestMac[5]);
-	LvItem.pszText = strupr(Buf);
+	LvItem.pszText = _strupr(Buf);
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 6;
+	LvItem.iSubItem = 7;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%s", inet_ntoa(p.DestIp));
 	LvItem.pszText = Buf;
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 7;
+	LvItem.iSubItem = 8;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%d", ntohs(p.DestPort));
 	LvItem.pszText = Buf;
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
-	LvItem.iSubItem = 8;
+	LvItem.iSubItem = 9;
 	memset(Buf, 0, sizeof(Buf));
 	sprintf(Buf, "%d", p.Length);
 	LvItem.pszText = Buf;
 	SendMessage(GetDlgItem(hDlg, IDC_LIST), LVM_SETITEM, (WPARAM)0, (LPARAM)&LvItem);
 
 	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//初始化wpcap
+//////////////////////////////////////////////////////////////////////////
+int InitWpcapNetCards()
+{
+	//网络设备指针
+	pcap_if_t *pcapDev;
+	//存储错误信息
+	char errContent[PCAP_ERRBUF_SIZE];
+
+	//存放所有网卡的数组
+	vector<pcap_if_t*>::iterator iter;
+
+	// 获得网络设备指针
+	if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &pcapDev, errContent) == -1)
+	{
+		MessageBox(NULL, "获取网络设备失败", "警告", MB_OK);
+		return -1;
+	}
+	//选取合适网卡
+	while (pcapDev != NULL)
+	{
+		netDevs.push_back(pcapDev);
+		pcapDev = pcapDev->next;
+	}
+
+
+	for (iter = netDevs.begin(); iter != netDevs.end(); iter++){
+		SendMessage(GetDlgItem(hDlg, IDC_COMBO1), CB_ADDSTRING, (WPARAM)0, (LPARAM)(*iter)->description);
+	}
+	return 0;
 }

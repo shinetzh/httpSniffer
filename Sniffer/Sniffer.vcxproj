@@ -41,8 +41,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>E:\WpdPack\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\WpdPack\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\programing workspace\WpdPack\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\programing workspace\WpdPack\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -85,6 +85,7 @@
     <ClInclude Include="Protocol.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="sniffer.h" />
+    <ClInclude Include="SnifferDlg.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Sniffer.rc" />

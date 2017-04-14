@@ -25,7 +25,7 @@ typedef struct ip_hdr{
 //TCP协议结构体
 typedef struct tcp_hdr{
 	unsigned short	SrcPort;			//源端口
-	unsigned short	DestPort;			//源端口
+	unsigned short	DestPort;			//目的端口
 	unsigned int	Seq;				//序列号
 	unsigned int	Ack;				//确认序列号
 	unsigned char	Lenres;				//首部长度+保留位

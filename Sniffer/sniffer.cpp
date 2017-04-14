@@ -22,71 +22,7 @@ unsigned int PacketCount;
 //核心函数实现
 //////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////
-//初始化wpcap
-//////////////////////////////////////////////////////////////////////////
-int InitWpcap(void)
-{
-	//网络设备指针
-	pcap_if_t *pcapDev;
-	//存储错误信息
-	char errContent[PCAP_ERRBUF_SIZE];
-	//BPF过滤规则
-	bpf_program filter;
-	//过滤规则字符串
-	char bpfFilterString[] = "ip";
-	//掩码
-	bpf_u_int32	netMask;
-	//网络地址
-	bpf_u_int32 netIp = 0;
 
-
-	// 获得网络设备指针
-	if (pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &pcapDev, errContent) == -1)
-	{
-		MessageBox(NULL, "获取网络设备失败", "警告", MB_OK);
-		return -1;
-	}
-	//选取合适网卡
-	//while (pcapDev->addresses == NULL)
-	//{
-		pcapDev = pcapDev->next;   //经过调试发现应该用第二个网卡
-	//}
-
-	//打开网卡
-	if ((pcapHandle = pcap_open(pcapDev->name, 65536, PCAP_OPENFLAG_PROMISCUOUS, 1000, NULL, errContent)) == NULL)
-	{
-		MessageBoxA(NULL, "打开网卡失败", "警告", MB_OK);
-		return -1;
-	}
-
-	// 检查链路层，只支持以太网
-	if (pcap_datalink(pcapHandle) != DLT_EN10MB)
-	{
-		MessageBoxA(NULL, "只支持以太网", "警告", MB_OK);
-		pcap_freealldevs(pcapDev);
-		return -1;
-	}
-	if (pcapDev->addresses != NULL)
-	{
-		//取得网络接口子网掩码
-		netMask = ((struct sockaddr_in *)(pcapDev->addresses->netmask))->sin_addr.S_un.S_addr;
-	}
-	else
-	{
-		netMask = 0xFFFFFFFF;
-	}
-
-	//编译BPF过滤规则
-	pcap_compile(pcapHandle, &filter, bpfFilterString, 0, netIp);
-
-	//设置过滤规则
-	pcap_setfilter(pcapHandle, &filter);
-
-	arg.pcapHandle = pcapHandle;
-
-	return 0;
-}
 
 //////////////////////////////////////////////////////////////////////////
 //IP分析回调函数
@@ -224,7 +160,7 @@ void EtherPacketCallback(u_char *argument, const struct pcap_pkthdr *packetHdr, 
 	//填充源MAC和目的MAC
 	memcpy(p.SrcMac, EtherProtocol->EtherSrcHost, 6);
 	memcpy(p.DestMac, EtherProtocol->EtherDestHost, 6);
-
+	p.time = GetMilliTime();
 	//IP协议分析
 	IpPacketCallback(argument, packetHdr, packetContent);
 }
@@ -245,11 +181,9 @@ BOOL Func(LPVOID p)
 //////////////////////////////////////////////////////////////////////////
 //开始嗅探
 //////////////////////////////////////////////////////////////////////////
-BOOL StartSniffer()
+BOOL StartSniffer(pcap_if_t *pcapDev)
 {
-	//初始化wpcap
-	InitWpcap();
-
+	InitWpcap(pcapDev);
 	//数目清零
 	PacketCount = 0;
 
@@ -298,4 +232,54 @@ long long int GetMilliTime()
 	ftime(&t1);
 	time_last = t1.millitm + t1.time * 1000;
 	return time_last;
+}
+
+
+
+
+int InitWpcap(pcap_if_t *pcapDev){
+	//存储错误信息
+	char errContent[PCAP_ERRBUF_SIZE];
+	//BPF过滤规则
+	bpf_program filter;
+	//过滤规则字符串
+	char bpfFilterString[] = "ip";
+	//掩码
+	bpf_u_int32	netMask;
+	//网络地址
+	bpf_u_int32 netIp = 0;
+
+	//打开网卡
+	if ((pcapHandle = pcap_open(pcapDev->name, 65536, PCAP_OPENFLAG_PROMISCUOUS, 1000, NULL, errContent)) == NULL)
+	{
+		MessageBoxA(NULL, "打开网卡失败", "警告", MB_OK);
+		return -1;
+	}
+
+	// 检查链路层，只支持以太网
+	if (pcap_datalink(pcapHandle) != DLT_EN10MB)
+	{
+		MessageBoxA(NULL, "只支持以太网", "警告", MB_OK);
+		pcap_freealldevs(pcapDev);
+		return -1;
+	}
+	if (pcapDev->addresses != NULL)
+	{
+		//取得网络接口子网掩码
+		netMask = ((struct sockaddr_in *)(pcapDev->addresses->netmask))->sin_addr.S_un.S_addr;
+	}
+	else
+	{
+		netMask = 0xFFFFFFFF;
+	}
+
+	//编译BPF过滤规则
+	pcap_compile(pcapHandle, &filter, bpfFilterString, 0, netIp);
+
+	//设置过滤规则
+	pcap_setfilter(pcapHandle, &filter);
+
+	arg.pcapHandle = pcapHandle;
+
+	return 0;
 }

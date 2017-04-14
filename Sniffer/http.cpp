@@ -13,7 +13,7 @@ bool HttpRequestCallback(char *Content, int ContentLength)
 
 	char Delimiter[3] = { (char)0x0d, (char)0x0a, '\0' };
 
-	char Temp[3][100] = { 0 };     //存储http前三个字段
+	char Temp[3][2000] = { 0 };     //存储http前三个字段
 	char Temper[20][1000], *Value;
 	memset(Temper, 0, sizeof(Temper));
 	int iNumber = 0, jLength;
@@ -115,8 +115,8 @@ bool HttpResponseCallback(char *Content, int ContentLength)
 	char *buffer = Content;
 
 	char Delimiter[3] = { (char)0x0d, (char)0x0a, '\0' };
-	char Temp[3][100] = {0};     //存储http前三个字段
-	char Temper[20][1000];
+	char Temp[3][1000] = {0};     //存储http前三个字段
+	char Temper[20][2000];
 	char *Value, Type[50] = { 0 };   //字段的值和类型
 	memset(Temper, 0, sizeof(Temper));
 	int iNumber = 0, jLength;
