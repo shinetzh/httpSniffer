@@ -40,8 +40,13 @@ bool HttpRequestCallback(char *Content, int ContentLength)
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
 			break;
+		//if (strlen(buffer) == 0)
+			//break;
 		strncpy(Temper[i], buffer, index);
 		buffer = buffer + index + 2;
+		ContentLength = ContentLength - index - 3;
+		if (ContentLength < 0)
+			break;
 		i++;
 	}
 	strcpy(HttpRequest.Request_Version, Temper[0]);//http头的第三个字段
@@ -144,8 +149,13 @@ bool HttpResponseCallback(char *Content, int ContentLength)
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
 			break;
+		//if (strlen(buffer) == 0)
+			//break;
 		strncpy(Temper[i], buffer, index);
 		buffer = buffer + index + 2;
+		ContentLength = ContentLength - index - 3;
+		if (ContentLength < 0)
+			break;
 		i++;
 	}
 	strcpy(HttpResponse.Response_Phase, Temper[0]);//http头的第三个字段
