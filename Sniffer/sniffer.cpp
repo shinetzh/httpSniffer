@@ -93,6 +93,7 @@ BOOL TcpPacketCallback(u_char *argument, const struct pcap_pkthdr *packetHdr, co
 	packets.push_back(p);
 
 	InsertPacket(p);
+	WriteNetLayer(p);
 
 	char *Content = (char*)TcpProtocol + 20;
 	int ContentLength = HeaderLength - 20;
@@ -142,6 +143,7 @@ BOOL UdpPacketCallback(u_char *argument, const struct pcap_pkthdr *packetHdr, co
 	packets.push_back(p);
 
 	InsertPacket(p);
+	WriteNetLayer(p);
 
 	return TRUE;
 }
@@ -282,4 +284,32 @@ int InitWpcap(pcap_if_t *pcapDev){
 	arg.pcapHandle = pcapHandle;
 
 	return 0;
+}
+
+void WriteNetLayer(Packet p){
+	ofstream outfile;
+	char Buf[1024];
+	outfile.open("NetLayer.txt",ios_base::app);
+	outfile << setw(10) << setiosflags(ios::left) << p.time;
+	if (p.Protocol == TCP)
+	{
+		outfile << setw(10) << setiosflags(ios::left) << "TCP";
+	}
+	else
+	{
+		outfile << setw(10) << setiosflags(ios::left) << "UDP";
+	}
+	memset(Buf, 0, sizeof(Buf));
+	sprintf(Buf, "%02x:%02x:%02x:%02x:%02x:%02x", p.SrcMac[0], p.SrcMac[1], p.SrcMac[2], p.SrcMac[3], p.SrcMac[4], p.SrcMac[5]);
+	outfile << setw(10) << setiosflags(ios::left) << _strupr(Buf);
+	outfile << setw(10) << setiosflags(ios::left) << inet_ntoa(p.SrcIp);
+	outfile << setw(10) << setiosflags(ios::left) << p.SrcPort;
+	memset(Buf, 0, sizeof(Buf));
+	sprintf(Buf, "%02x:%02x:%02x:%02x:%02x:%02x", p.DestMac[0], p.DestMac[1], p.DestMac[2], p.DestMac[3], p.DestMac[4], p.DestMac[5]);
+	outfile << setw(10) << setiosflags(ios::left) << _strupr(Buf);
+	outfile << setw(10) << setiosflags(ios::left) << inet_ntoa(p.DestIp);
+	outfile << setw(10) << setiosflags(ios::left) << p.DestPort;
+	outfile << setw(10) << setiosflags(ios::left) << p.Length;
+	outfile << endl;
+	outfile.close();
 }

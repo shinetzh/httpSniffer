@@ -13,8 +13,8 @@ bool HttpRequestCallback(char *Content, int ContentLength)
 
 	char Delimiter[3] = { (char)0x0d, (char)0x0a, '\0' };
 
-	char Temp[3][2000] = { 0 };     //存储http前三个字段
-	char Temper[20][1000], *Value;
+	char Temp[3][3000] = { 0 };     //存储http前三个字段
+	char Temper[20][2000], *Value;
 	memset(Temper, 0, sizeof(Temper));
 	int iNumber = 0, jLength;
 	for (jLength = 0; jLength < ContentLength; jLength++)
@@ -35,7 +35,7 @@ bool HttpRequestCallback(char *Content, int ContentLength)
 
 //将字符串切割后，存入缓存Temper中
 	int i = 0,index =  0;
-	while (true)
+	while (i<20)
 	{
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
@@ -115,8 +115,8 @@ bool HttpResponseCallback(char *Content, int ContentLength)
 	char *buffer = Content;
 
 	char Delimiter[3] = { (char)0x0d, (char)0x0a, '\0' };
-	char Temp[3][1000] = {0};     //存储http前三个字段
-	char Temper[20][2000];
+	char Temp[3][5000] = {0};     //存储http前三个字段
+	char Temper[20][5000];
 	char *Value, Type[50] = { 0 };   //字段的值和类型
 	memset(Temper, 0, sizeof(Temper));
 	int iNumber = 0, jLength;
@@ -139,7 +139,7 @@ bool HttpResponseCallback(char *Content, int ContentLength)
 
 	//将字符串切割后，存入缓存Temper中
 	int i = 0, index = 0;
-	while (true)
+	while (i<20)
 	{
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
@@ -311,7 +311,7 @@ void WriteRequest()
 void WriteResponse()
 {
 	ofstream ofile;
-	ofile.open("http_response.txt", ios::app);
+	ofile.open("http_response.txt", ios_base::app);
 	if (strlen(HttpResponse.Status_Code) != 0)
 	{
 		ofile << setw(10) << setiosflags(ios::left) << HttpResponse.Status_Code;
