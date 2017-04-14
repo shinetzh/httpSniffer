@@ -78,4 +78,7 @@ BOOL StopSniffer(pcap_t *pcapHandle);
 //Winpcap初始化
 int InitWpcap(pcap_if_t *pcapDev);
 
+//导出网络层数据
+void WriteNetLayer(Packet p);
+
 long long int GetMilliTime();

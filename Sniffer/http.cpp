@@ -35,7 +35,7 @@ bool HttpRequestCallback(char *Content, int ContentLength)
 
 //将字符串切割后，存入缓存Temper中
 	int i = 0,index =  0;
-	while (true)
+	while (i<20)
 	{
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
@@ -139,7 +139,7 @@ bool HttpResponseCallback(char *Content, int ContentLength)
 
 	//将字符串切割后，存入缓存Temper中
 	int i = 0, index = 0;
-	while (true)
+	while (i<20)
 	{
 		index = SubString(buffer, Delimiter);
 		if (index == 0)
